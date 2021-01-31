@@ -1,9 +1,9 @@
 ﻿  OpenGLMeshLoader19.cpp
-C:\Users\lenovo\Desktop\OpenGLMeshLoader19 - sky\TextureBuilder.h(27,52): warning C4244: 'argument': conversion from 'int' to 'GLfloat', possible loss of data
-C:\Users\lenovo\Desktop\OpenGLMeshLoader19 - sky\TextureBuilder.h(28,52): warning C4244: 'argument': conversion from 'int' to 'GLfloat', possible loss of data
-C:\Users\lenovo\Desktop\OpenGLMeshLoader19 - sky\OpenGLMeshLoader19.cpp(649,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\lenovo\Desktop\OpenGLMeshLoader19 - sky\OpenGLMeshLoader19.cpp(659,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\lenovo\Desktop\OpenGLMeshLoader19 - sky\OpenGLMeshLoader19.cpp(694,20): warning C4018: '<': signed/unsigned mismatch
-C:\Users\lenovo\Desktop\OpenGLMeshLoader19 - sky\OpenGLMeshLoader19.cpp(809,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\sarah\OneDrive\Desktop\OpenGLMeshLoader19 - sky\TextureBuilder.h(27,52): warning C4244: 'argument': conversion from 'int' to 'GLfloat', possible loss of data
+C:\Users\sarah\OneDrive\Desktop\OpenGLMeshLoader19 - sky\TextureBuilder.h(28,52): warning C4244: 'argument': conversion from 'int' to 'GLfloat', possible loss of data
+C:\Users\sarah\OneDrive\Desktop\OpenGLMeshLoader19 - sky\OpenGLMeshLoader19.cpp(512,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\sarah\OneDrive\Desktop\OpenGLMeshLoader19 - sky\OpenGLMeshLoader19.cpp(524,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\sarah\OneDrive\Desktop\OpenGLMeshLoader19 - sky\OpenGLMeshLoader19.cpp(581,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\sarah\OneDrive\Desktop\OpenGLMeshLoader19 - sky\OpenGLMeshLoader19.cpp(737,20): warning C4018: '<': signed/unsigned mismatch
 GLTexture.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/INCREMENTAL:NO' specification
-  OpenGLMeshLoader.vcxproj -> C:\Users\lenovo\Desktop\OpenGLMeshLoader19 - sky\Debug\OpenGLMeshLoader19.exe
+  OpenGLMeshLoader.vcxproj -> C:\Users\sarah\OneDrive\Desktop\OpenGLMeshLoader19 - sky\Debug\OpenGLMeshLoader19.exe

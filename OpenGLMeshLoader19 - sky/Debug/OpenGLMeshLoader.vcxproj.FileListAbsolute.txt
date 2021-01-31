@@ -1,2 +1,6 @@
 C:\Users\lenovo\Desktop\OpenGLMeshLoader19 - sky\Debug\OpenGLMeshLoader19.exe
 C:\Users\lenovo\Desktop\OpenGLMeshLoader19 - sky\Debug\OpenGLMeshLoader19.pdb
+C:\Users\sarah\OneDrive\Documents\GitHub\ts-ts-ana-el-so3ban\OpenGLMeshLoader19 - sky\Debug\OpenGLMeshLoader19.exe
+C:\Users\sarah\OneDrive\Documents\GitHub\ts-ts-ana-el-so3ban\OpenGLMeshLoader19 - sky\Debug\OpenGLMeshLoader19.pdb
+C:\Users\sarah\OneDrive\Desktop\OpenGLMeshLoader19 - sky\Debug\OpenGLMeshLoader19.exe
+C:\Users\sarah\OneDrive\Desktop\OpenGLMeshLoader19 - sky\Debug\OpenGLMeshLoader19.pdb

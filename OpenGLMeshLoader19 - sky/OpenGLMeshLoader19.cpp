@@ -14,11 +14,11 @@
 #include <vector>
 #include <array>
 
-
 #include <windows.h>
 #include <mmsystem.h>
 #include <Mmsystem.h>
 #include <mciapi.h>
+#include <iostream>
 #pragma comment(lib, "Winmm.lib")
 
 using namespace std;
@@ -38,8 +38,48 @@ GLdouble aspectRatio = (GLdouble)WIDTH / (GLdouble)HEIGHT;
 GLdouble zNear = 0.1;
 GLdouble zFar = 100;
 
-class Vector
-{
+const int INF = 1000000000;
+const int GRID_LENGTH = 15;
+const int GRID_WIDTH = 15;
+
+double red = 1;
+double green = 1;
+double blue = 1;
+
+vector<int> snake_body_x;
+vector<int> snake_body_z;
+
+vector<int> obstacle_wall_x;
+vector<int> obstacle_wall_z;
+
+char dir = 'U';
+char prevDir = 'U';
+
+int food_x = INF;
+int food_z = INF;
+
+int score = 0;
+
+bool GAME_OVER = false;
+bool LEVEL_TWO = true;
+
+bool FIRST_PERSON = true;
+bool SECOND_PERSON = true;
+
+int CURRENT_TIME = 0;
+int CURRENT_TIME_TICK = 0;
+int orientation = 0;// 0-> UP, 1->RIGHT, 2->DOWN, 3->LEFT
+
+int GAME_TIME_OUT = 30000;
+
+int LEVEL_NUMBER = 1;
+
+float lightposx;
+float lightposz;
+
+const int TARGET_GOAL_GOUNT = 5;
+
+class Vector {
 public:
 	GLdouble x, y, z;
 	Vector() {}
@@ -66,114 +106,35 @@ int cameraZoom = 0;
 Model_3DS model_house;
 Model_3DS model_tree;
 Model_3DS model_apple;
+Model_3DS model_pyramid;
+Model_3DS model_cactus;
+Model_3DS model_rock;
+Model_3DS model_ice;
+Model_3DS model_watermelon;
 
 // Textures
 GLTexture tex_ground;
+GLTexture tex_ground_snow;
 GLTexture tex_wall;
 GLTexture tex_snake;
 
-//=======================================================================
-// Lighting Configuration Function
-//=======================================================================
-void InitLightSource()
-{
-	// Enable Lighting for this OpenGL Program
-	glEnable(GL_LIGHTING);
-
-	// Enable Light Source number 0
-	// OpengL has 8 light sources
-	glEnable(GL_LIGHT0);
-
-	// Define Light source 0 ambient light
-	GLfloat ambient[] = { 0.1f, 0.1f, 0.1, 1.0f };
-	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
-
-	// Define Light source 0 diffuse light
-	GLfloat diffuse[] = { 0.5f, 0.5f, 0.5f, 1.0f };
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
-
-	// Define Light source 0 Specular light
-	GLfloat specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
-
-	// Finally, define light source 0 position in World Space
-	GLfloat light_position[] = { 0.0f, 10.0f, 0.0f, 1.0f };
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-}
-
-//=======================================================================
-// Material Configuration Function
-//======================================================================
-void InitMaterial()
-{
-	// Enable Material Tracking
-	glEnable(GL_COLOR_MATERIAL);
-
-	// Sich will be assigneet Material Properties whd by glColor
-	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
-
-	// Set Material's Specular Color
-	// Will be applied to all objects
-	GLfloat specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
-
-	// Set Material's Shine value (0->128)
-	GLfloat shininess[] = { 96.0f };
-	glMaterialfv(GL_FRONT, GL_SHININESS, shininess);
-}
-
-//=======================================================================
-// OpengGL Configuration Function
-//=======================================================================
-void myInit(void)
-{
-	glClearColor(0.0, 0.0, 0.0, 0.0);
-
-	glMatrixMode(GL_PROJECTION);
-
-	glLoadIdentity();
-
-	gluPerspective(fovy, aspectRatio, zNear, zFar);
-	//*******************************************************************************************//
-	// fovy:			Angle between the bottom and top of the projectors, in degrees.			 //
-	// aspectRatio:		Ratio of width to height of the clipping plane.							 //
-	// zNear and zFar:	Specify the front and back clipping planes distances from camera.		 //
-	//*******************************************************************************************//
-
-	glMatrixMode(GL_MODELVIEW);
-
-	glLoadIdentity();
-
-	gluLookAt(Eye.x, Eye.y, Eye.z, At.x, At.y, At.z, Up.x, Up.y, Up.z);
-	//*******************************************************************************************//
-	// EYE (ex, ey, ez): defines the location of the camera.									 //
-	// AT (ax, ay, az):	 denotes the direction where the camera is aiming at.					 //
-	// UP (ux, uy, uz):  denotes the upward orientation of the camera.							 //
-	//*******************************************************************************************//
-
-	InitLightSource();
-
-	InitMaterial();
-
-	glEnable(GL_DEPTH_TEST);
-
-	glEnable(GL_NORMALIZE);
-}
-
-//=======================================================================
-// Render Ground Function
-//=======================================================================
 void RenderGround()
 {
-	glDisable(GL_LIGHTING);	// Disable lighting 
+	//glDisable(GL_LIGHTING);	// Disable lighting 
 
-	glColor3f(0.6, 0.6, 0.6);	// Dim the ground texture a bit
+	/*glColor3f(0.6, 0.6, 0.6);*/	// Dim the ground texture a bit
 
 	glEnable(GL_TEXTURE_2D);	// Enable 2D texturing
 
-	glBindTexture(GL_TEXTURE_2D, tex_ground.texture[0]);	// Bind the ground texture
+	if (LEVEL_NUMBER == 1) {
+		glBindTexture(GL_TEXTURE_2D, tex_ground_snow.texture[0]);
+	}
+	else {
+		glBindTexture(GL_TEXTURE_2D, tex_ground.texture[0]);	// Bind the ground texture
+	}
 
 	glPushMatrix();
+
 	glScalef(1.0 / 2.5, 1, 1.0 / 2.5);
 	glBegin(GL_QUADS);
 	glNormal3f(0, 1, 0);	// Set quad normal direction.
@@ -186,178 +147,35 @@ void RenderGround()
 	glTexCoord2f(0, 5);
 	glVertex3f(-20, 0, 20);
 	glEnd();
+
 	glPopMatrix();
 
-	glEnable(GL_LIGHTING);	// Enable lighting again for other entites coming throung the pipeline.
+	//glEnable(GL_LIGHTING);	// Enable lighting again for other entites coming throung the pipeline.
 
 	glColor3f(1, 1, 1);	// Set material back to white instead of grey used for the ground texture.
 }
 
-//=======================================================================
-// Display Function
-//=======================================================================
-void myDisplay(void)
-{
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-
-	GLfloat lightIntensity[] = { 0.7, 0.7, 0.7, 1.0f };
-	GLfloat lightPosition[] = { 0.0f, 100.0f, 0.0f, 0.0f };
-	glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
-	glLightfv(GL_LIGHT0, GL_AMBIENT, lightIntensity);
-
-	// Draw Ground
-	RenderGround();
-
-	// Draw Tree Model
-	glPushMatrix();
-	glTranslatef(10, 0, 0);
-	glScalef(0.7, 0.7, 0.7);
-	model_tree.Draw();
-	glPopMatrix();
-
-	// Draw house Model
-	glPushMatrix();
-	glRotatef(90.f, 1, 0, 0);
-	model_house.Draw();
-	glPopMatrix();
-
-
-	//sky box
-	glPushMatrix();
-
-	GLUquadricObj* qobj;
-	qobj = gluNewQuadric();
-	glTranslated(50, 0, 0);
-	glRotated(90, 1, 0, 1);
-	glBindTexture(GL_TEXTURE_2D, tex);
-	gluQuadricTexture(qobj, true);
-	gluQuadricNormals(qobj, GL_SMOOTH);
-	gluSphere(qobj, 100, 100, 100);
-	gluDeleteQuadric(qobj);
-
-
-	glPopMatrix();
-
-
-
-	glutSwapBuffers();
-}
-
-//=======================================================================
-// Keyboard Function
-//=======================================================================
-void myKeyboard(unsigned char button, int x, int y)
-{
-	switch (button)
-	{
-	case 'w':
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		break;
-	case 'r':
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		break;
-	case 27:
-		exit(0);
-		break;
-	default:
-		break;
-	}
-
-	glutPostRedisplay();
-}
-
-//=======================================================================
-// Motion Function
-//=======================================================================
-void myMotion(int x, int y)
-{
-	y = HEIGHT - y;
-
-	if (cameraZoom - y > 0)
-	{
-		Eye.x += -0.1;
-		Eye.z += -0.1;
-	}
-	else
-	{
-		Eye.x += 0.1;
-		Eye.z += 0.1;
-	}
-
-	cameraZoom = y;
-
-	glLoadIdentity();	//Clear Model_View Matrix
-
-	gluLookAt(Eye.x, Eye.y, Eye.z, At.x, At.y, At.z, Up.x, Up.y, Up.z);	//Setup Camera with modified paramters
-
-	GLfloat light_position[] = { 0.0f, 10.0f, 0.0f, 1.0f };
-	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-
-	glutPostRedisplay();	//Re-draw scene 
-}
-
-//=======================================================================
-// Mouse Function
-//=======================================================================
-void myMouse(int button, int state, int x, int y)
-{
-	y = HEIGHT - y;
-
-	if (state == GLUT_DOWN)
-	{
-		cameraZoom = y;
-	}
-}
-
-//=======================================================================
-// Reshape Function
-//=======================================================================
-void myReshape(int w, int h)
-{
-	if (h == 0) {
-		h = 1;
-	}
-
-	WIDTH = w;
-	HEIGHT = h;
-
-	// set the drawable region of the window
-	glViewport(0, 0, w, h);
-
-	// set up the projection matrix 
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(fovy, (GLdouble)WIDTH / (GLdouble)HEIGHT, zNear, zFar);
-
-	// go back to modelview matrix so we can move the objects about
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	gluLookAt(Eye.x, Eye.y, Eye.z, At.x, At.y, At.z, Up.x, Up.y, Up.z);
-}
-
-//=======================================================================
-// Assets Loading Function
-//=======================================================================
 void LoadAssets()
 {
 	// Loading Model files
-	model_house.Load("Models/house/house.3DS");
-	model_tree.Load("Models/tree/Tree1.3ds");
+	//model_house.Load("Models/house/house.3DS");
+	//model_tree.Load("Models/tree/Tree1.3ds");
 	model_apple.Load("Models/apple/apple.3DS");
+	model_pyramid.Load("Models/pyramid/pyramid.3DS");
+	//model_rock.Load("Models/rock/rock.3DS");
+	model_cactus.Load("Models/cactus/cacutus.3DS");
+	model_ice.Load("Models/ice/ice.3DS");
+	model_watermelon.Load("Models/watermelon/watermelon.3DS");
 
 	// Loading texture files
-	tex_snake.Load("Textures/snake2.bmp");
+	tex_snake.Load("Textures/snake.bmp");
 	tex_ground.Load("Textures/ground2.bmp");
-	tex_wall.Load("Models/tree/bark_loo.bmp");
+	tex_ground_snow.Load("Textures/snow.bmp");
+
+	//tex_wall.Load("Models/tree/bark_loo.bmp");
 	loadBMP(&tex, "Textures/blu-sky-3.bmp", true);
 }
 
-
-
-//-------------------------------------------------------------------------
-//-------------------------------------------------------------------------
 class Vector3f {
 public:
 	float x, y, z;
@@ -471,21 +289,18 @@ public:
 Camera camera;
 void Timer(int value);
 
-void setupLights() {
-	GLfloat ambient[] = { 0.7f, 0.7f, 0.7, 1.0f };
-	GLfloat diffuse[] = { 0.6f, 0.6f, 0.6, 1.0f };
-	GLfloat specular[] = { 1.0f, 1.0f, 1.0, 1.0f };
-	GLfloat shininess[] = { 50 };
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, shininess);
-
-	GLfloat lightIntensity[] = { 0.7f, 0.7f, 1, 1.0f };
-	GLfloat lightPosition[] = { -7.0f, 6.0f, 3.0f, 0.0f };
-	glLightfv(GL_LIGHT0, GL_POSITION, lightIntensity);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, lightIntensity);
-}
+float d0R;
+float d0G;
+float d0B;
+float a0R;
+float a0G;
+float a0B;
+float d1R;
+float d1G;
+float d1B;
+float a1R;
+float a1G;
+float a1B;
 
 void setupCamera(double fovy) {
 	glMatrixMode(GL_PROJECTION);
@@ -497,10 +312,9 @@ void setupCamera(double fovy) {
 	camera.look();
 }
 
-void Draw_Unit_Cube(GLuint text) {
+void Draw_Unit_Cube_Mesh(GLuint text) {
 	glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, text);    // Background texture
-   // We will specify texture coordinates
+	glBindTexture(GL_TEXTURE_2D, text);
 	glDisable(GL_TEXTURE_GEN_S);
 	glDisable(GL_TEXTURE_GEN_T);
 
@@ -538,62 +352,112 @@ void Draw_Unit_Cube(GLuint text) {
 	glEnd();
 }
 
-void drawPlane() {
+void Draw_Unit_Cube_AtOrigin(GLuint text) {
 	glPushMatrix();
-	glScaled(1.0, 0.002, 1.0);
-	glutSolidCube(1);
+	glTranslated(0.5, 0.5, 0.5);
+	Draw_Unit_Cube_Mesh(text);
 	glPopMatrix();
 }
 
-void drawXYZ() {
-	glColor3f(1, 0, 0);
-	drawPlane();
+int rep = 5;
+void Draw_Unit_Cube(GLuint text) {
 	glPushMatrix();
-
-	glColor3f(0, 1, 0);
-	glRotated(90, 0, 0, 1.0);
-	drawPlane();
-	glPopMatrix();
-
-	glColor3f(0, 0, 1);
-	glPushMatrix();
-	glRotated(-90, 1.0, 0.0, 0.0);
-	drawPlane();
+	glTranslated(-0.5, -0.5, -0.5);
+	for (int i = 0; i < rep; i++) {
+		for (int j = 0; j < rep; j++) {
+			glPushMatrix();
+			glTranslated(i * 1.0 / rep, 0, j * 1.0 / rep);
+			glScaled(1.0 / rep, 1.0, 1.0 / rep);
+			Draw_Unit_Cube_AtOrigin(text);
+			glPopMatrix();
+		}
+	}
 	glPopMatrix();
 }
-const int INF = 1000000000;
-const int GRID_LENGTH = 15;
-const int GRID_WIDTH = 15;
 
-vector<int> snake_body_x;
-vector<int> snake_body_z;
+double randDouble(double min, double max) {
+	return (max - min) * ((double)rand() / (double)RAND_MAX) + min;
+}
 
-vector<int> obstacle_wall_x;
-vector<int> obstacle_wall_z;
+void generateRandomColor() {
+	red = randDouble(0, 1);
+	green = randDouble(0, 1);
+	blue = randDouble(0, 1);
+}
 
-char dir = 'U';
-char prevDir = 'U';
+void setupLights() {
+	GLfloat shininess[] = { 50 };
+	glMaterialfv(GL_FRONT, GL_SHININESS, shininess);
 
-int food_x = INF;
-int food_z = INF;
+	GLfloat lightPosition0[] = { -0.5f, 2.0f, 0.0f, 0.0f };
+	GLfloat diffuse0[] = { 0.98f, 0.83f, 0.25f, 1.0f };
+	if (LEVEL_NUMBER == 1) {
+		diffuse0[0] = 0.1f;
+		diffuse0[1] = 0.1f;
+		diffuse0[2] = 0.3f;
+	}
+	else if (LEVEL_NUMBER >= 3) {
+		diffuse0[0] = red;
+		diffuse0[1] = green;
+		diffuse0[2] = blue;
+	}
 
-int score = 0;
+	GLfloat ambient0[] = { 0.0f, 0.0f, 0.00f, 1.0f };
+	GLfloat specular0[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
+	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
+	glLightfv(GL_LIGHT0, GL_POSITION, lightPosition0);
 
-bool GAME_OVER = false;
-bool LEVEL_TWO = true;
+	GLfloat lightPosition1[] = { lightposx,0.02375f,lightposz,1.0f };
+	GLfloat diffuse1[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	GLfloat ambient1[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	GLfloat specular1[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	GLfloat direction1[] = { 0.0f, 0.0f, 0.0f };
 
-bool FIRST_PERSON = true;
-bool SECOND_PERSON = true;
+	if (dir == 'U') {
+		direction1[2] = -1.0f;
+		lightposx = (snake_body_x[0] * 1.0 / GRID_LENGTH);
+		lightposz = (snake_body_z[0] * 1.0 / GRID_LENGTH) + 0.02375 * 10;
+	}
+	if (dir == 'D') {
+		direction1[2] = 1.0f;
+		lightposx = (snake_body_x[0] * 1.0 / GRID_LENGTH);
+		lightposz = (snake_body_z[0] * 1.0 / GRID_LENGTH) - 0.02375 * 10;
+	}
+	if (dir == 'L') {
+		direction1[0] = -1.0f;
+		lightposx = (snake_body_x[0] * 1.0 / GRID_LENGTH) + 0.02375 * 10;
+		lightposz = (snake_body_z[0] * 1.0 / GRID_LENGTH);
+	}
+	if (dir == 'R') {
+		direction1[0] = 1.0f;
+		lightposx = (snake_body_x[0] * 1.0 / GRID_LENGTH) - 0.02375 * 10;
+		lightposz = (snake_body_z[0] * 1.0 / GRID_LENGTH);
+	}
 
-int CURRENT_TIME = 0;
-int orientation = 0;// 0-> UP, 1->RIGHT, 2->DOWN, 3->LEFT
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse1);
+	glLightfv(GL_LIGHT1, GL_AMBIENT, ambient1);
+	glLightfv(GL_LIGHT1, GL_SPECULAR, specular1);
+	glLightfv(GL_LIGHT1, GL_POSITION, lightPosition1);
+	glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, direction1);
+	glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 10.0f);
+	glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 0);
+}
 
 void Mouse(int button, int state, int x, int y) {
-	if (button == GLUT_RIGHT_BUTTON && state == GLUT_UP) orientation++;
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) orientation--;
-	orientation = (orientation + 4) % 4;
+	if (state == GLUT_UP) {
+		if (button == GLUT_RIGHT_BUTTON) {
+			orientation++;
+		}
+		if (button == GLUT_LEFT_BUTTON) {
+			orientation--;
+		}
+		orientation = (orientation + 4) % 4;
+	}
 	glutPostRedisplay();
 }
+
 void Set_Third_Camera() {
 	if (dir == 'U') {
 		camera.eye = Vector3f((snake_body_x[0] * 1.0) / GRID_LENGTH, 0.1f, (snake_body_z[0] * 1.0) / GRID_LENGTH);
@@ -615,7 +479,6 @@ void Set_Third_Camera() {
 	camera.look();
 
 }
-
 
 void Set_First_Camera() {
 	if (dir == 'U') {
@@ -650,7 +513,9 @@ bool Is_Collided_With_Snake_Body(int x, int z, bool excludeHead) {
 		if (i == 0 && excludeHead)continue;
 		int snakeX = snake_body_x[i];
 		int snakeZ = snake_body_z[i];
-		if (x == snakeX && z == snakeZ)return true;
+		if (x == snakeX && z == snakeZ) {
+			return true;
+		}
 	}
 	return false;
 }
@@ -665,29 +530,51 @@ bool Is_Collided_With_Wall(int x, int z) {
 }
 
 void Draw_Food(double x, double y, double z) {
-	glColor3f(1, 0, 0);
 	glPushMatrix();
 	glTranslatef(x, -0.15, z);
 	glPushMatrix();
 	glScalef(0.014, 0.014, 0.014);
 	//glutSolidCube(1);
-	model_apple.Draw();
+	if (LEVEL_NUMBER == 1) {
+		model_watermelon.Draw();
+	}
+	else {
+		//glColor3f(1, 0, 0);
+		model_apple.Draw();
+	}
 	glPopMatrix();
 	glPopMatrix();
 }
 
 void Draw_Wall_Unit(double x, double y, double z) {
-	glColor3f(1, 1, 1);
 	glPushMatrix();
-	glTranslatef(x, 0.5, z);
+	glTranslatef(x, 0, z);
 	glPushMatrix();
-	glScalef(1, 1.5, 1);
-	glutSolidCube(0.98);
-	Draw_Unit_Cube(tex_wall.texture[0]);
+	glScalef(0.01 / 2, 0.01 / 2, 0.01 / 2);
+	model_pyramid.Draw();
 	glPopMatrix();
 	glPopMatrix();
 
-	glEnable(GL_LIGHTING);	// Disable lighting 
+	glEnable(GL_LIGHTING);
+}
+
+void Draw_Boarder_Unit(double x, double y, double z) {
+	glPushMatrix();
+	glTranslatef(x, 0, z);
+	glPushMatrix();
+	if (LEVEL_NUMBER == 1) {
+		glScalef(0.05 / 2, 0.05 / 2, 0.05 / 2);
+		model_ice.Draw();
+	}
+
+	else {
+		glScalef(0.45, 0.2, 0.45);
+		model_cactus.Draw();
+	}
+	glPopMatrix();
+	glPopMatrix();
+
+	glEnable(GL_LIGHTING);
 }
 
 void Draw_Wall() {
@@ -698,7 +585,6 @@ void Draw_Wall() {
 	}
 }
 
-
 void Update_Food_Position() {
 	while (true) {
 		food_x = (rand() % GRID_LENGTH) - (GRID_LENGTH / 2);
@@ -708,6 +594,8 @@ void Update_Food_Position() {
 }
 
 void Generate_Obstacles() {
+	obstacle_wall_x.clear();
+	obstacle_wall_z.clear();
 	for (int i = 0; i < 10; i++) {
 		int wall_x = -1;
 		int wall_z = -1;
@@ -718,12 +606,32 @@ void Generate_Obstacles() {
 		}
 		obstacle_wall_x.push_back(wall_x);
 		obstacle_wall_z.push_back(wall_z);
-		std::cout << wall_x;
+	}
+}
+
+void Generate_Boarder() {
+	for (int i = 0; i < 10; i++) {
+		int x = -1;
+		int z = -1;
+		for (int i = 1; i <= GRID_LENGTH; i++) {
+
+			Draw_Boarder_Unit(-(GRID_LENGTH / 2) - 1, 0, i - (GRID_LENGTH / 2) - 1);
+			Draw_Boarder_Unit((GRID_LENGTH / 2) + 1, 0, i - (GRID_LENGTH / 2) - 1);
+		}
+		for (int i = 1; i <= GRID_LENGTH; i++) {
+			glPushMatrix();
+			glRotatef(90, 0, 1, 0);
+
+			Draw_Boarder_Unit(-(GRID_LENGTH / 2) - 1, 0, i - (GRID_LENGTH / 2) - 1);
+			Draw_Boarder_Unit((GRID_LENGTH / 2) + 1, 0, i - (GRID_LENGTH / 2) - 1);
+			glPopMatrix();
+		}
 	}
 }
 
 bool Eat_Food() {
 	if (snake_body_x[0] == food_x && snake_body_z[0] == food_z) {
+		PlaySound(TEXT("sounds/eat.wav"), NULL, SND_ASYNC | SND_FILENAME);
 		score++;
 		Update_Food_Position();
 		glutPostRedisplay();
@@ -733,10 +641,14 @@ bool Eat_Food() {
 }
 
 bool Is_Game_Over() {
-	return GAME_OVER = GAME_OVER ||
+	if (GAME_OVER)return true;
+	GAME_OVER = CURRENT_TIME_TICK >= GAME_TIME_OUT ||
 		Is_Collided_With_Borders() ||
 		Is_Collided_With_Snake_Body(snake_body_x[0], snake_body_z[0], true) ||
 		Is_Collided_With_Wall(snake_body_x[0], snake_body_z[0]);
+	if (GAME_OVER)
+		PlaySound(TEXT("sounds/dead.wav"), NULL, SND_ASYNC | SND_FILENAME);
+	return GAME_OVER;
 }
 
 void Draw_Line(double x1, double y1, double z1, double x2, double y2, double z2) {
@@ -747,12 +659,12 @@ void Draw_Line(double x1, double y1, double z1, double x2, double y2, double z2)
 }
 
 void Draw_Snake_Unit(double x, double y, double z) {
-	glColor3f(1, 248.0/256, 51.0/256);
+	//glColor3f(1, 248.0 / 256, 51.0 / 256);
 	glPushMatrix();
-	glTranslatef(x, 0.5, z);
+	glTranslatef(x, 0.25, z);
 	glPushMatrix();
 	glScalef(1, 0.5, 1);
-	glutSolidCube(0.95);
+	//glutSolidCube(0.95);
 	Draw_Unit_Cube(tex_snake.texture[0]);
 	glPopMatrix();
 	glPopMatrix();
@@ -762,8 +674,8 @@ void Draw_Snake_Unit(double x, double y, double z) {
 
 void Update_Head_Position() {
 	CURRENT_TIME = 1;
-
-	if (!Eat_Food() && snake_body_x.size() && snake_body_z.size()) {
+	bool eatFood = Eat_Food();
+	if (!eatFood && snake_body_x.size() && snake_body_z.size()) {
 		snake_body_x.pop_back();
 		snake_body_z.pop_back();
 	}
@@ -794,10 +706,26 @@ void Update_Head_Position() {
 		if (dir == 'L')orientation = 3;
 	}
 
-	if (dir == 'U')head_z--;
-	else if (dir == 'D')head_z++;
-	else if (dir == 'L')head_x--;
-	else if (dir == 'R')head_x++;
+	if (dir == 'U') {
+		if (!eatFood)
+			PlaySound(TEXT("sounds/up.wav"), NULL, SND_ASYNC | SND_FILENAME);
+		head_z--;
+	}
+	else if (dir == 'D') {
+		if (!eatFood)
+			PlaySound(TEXT("sounds/down.wav"), NULL, SND_ASYNC | SND_FILENAME);
+		head_z++;
+	}
+	else if (dir == 'L') {
+		if (!eatFood)
+			PlaySound(TEXT("sounds/left.wav"), NULL, SND_ASYNC | SND_FILENAME);
+		head_x--;
+	}
+	else if (dir == 'R') {
+		if (!eatFood)
+			PlaySound(TEXT("sounds/right.wav"), NULL, SND_ASYNC | SND_FILENAME);
+		head_x++;
+	}
 
 	prevDir = dir;
 
@@ -820,95 +748,161 @@ void Draw_Grid() {
 	}
 }
 
-void Display() {
-	if (!FIRST_PERSON && !SECOND_PERSON)
-		setupCamera(60);
-	else {
-		setupCamera(120);
-	}
-	setupLights();
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+void drawStrokeText(char* string, int x, int y, int z) {
+	char* c;
 	glPushMatrix();
-	glScalef(1.0 / GRID_LENGTH, 1.0 / GRID_WIDTH, 1.0 / GRID_WIDTH);
+	glTranslatef(x, y, z);
+	glScalef(0.0009f, 0.0008f, z);
 
-	if (LEVEL_TWO) {
-		LEVEL_TWO = false;
-		Generate_Obstacles();
+	for (c = string; *c; c++)
+	{
+		glutStrokeCharacter(GLUT_STROKE_ROMAN, *c);
 	}
-	Draw_Wall();
-	Draw_Grid();
-	RenderGround();
-	Draw_Snake();
-	Draw_Food(food_x, 0, food_z);
 	glPopMatrix();
+}
 
-	if (FIRST_PERSON)
-		Set_First_Camera();
-	else if (SECOND_PERSON)
-		Set_Third_Camera();
-	else camera.cornerView();
+void print(double x, double y, string str) {
+	int len, i;
+	glRasterPos2f(x, y);
+	len = str.size();
+	for (i = 0; i < len; i++) {
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, str[i]);
+	}
+}
 
+void Display() {
+	if (GAME_OVER) {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		setupCamera(60);
+
+		camera.cornerView();
+		glColor3f(0, 0, 0);
+		if (score >= TARGET_GOAL_GOUNT) {
+			print(-1.0, 0, "             WE HAVE A WINNER!");
+			print(-1.0, -0.5, " Please press Space to move to Level " + to_string(LEVEL_NUMBER + 1));
+		}
+		else {
+			print(-1.0, 0, "         Ooooooooooops! Game Over!");
+			print(-1.0, -0.5, "       Please press Space to replay.");
+		}
+		print(-1.0, -1, "              The Score: " + to_string(score) + " / " + to_string(TARGET_GOAL_GOUNT));
+	}
+	else {
+		float windowWidth = glutGet(GLUT_WINDOW_WIDTH);
+		float windowHeight = glutGet(GLUT_WINDOW_HEIGHT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		gluOrtho2D(0.0, windowWidth, 0.0, windowHeight);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+
+		glDisable(GL_COLOR_MATERIAL);
+		glDisable(GL_LIGHTING);
+		glClearColor(1.0, 1.0, 1.0, 1.0);
+		glColor3f(1.0, 1.0, 1.0);
+		print(30, windowHeight - 40, "Score: " + to_string(score) +
+			+" / " + to_string(TARGET_GOAL_GOUNT));
+		print(30, windowHeight - 80, "Time Left: " + to_string((GAME_TIME_OUT - CURRENT_TIME_TICK) / 1000 + 1));
+		print(windowWidth / 2 - 20, 40
+			, "Level " + to_string(LEVEL_NUMBER));
+
+		glDepthMask(GL_FALSE);
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_LIGHTING);
+		glEnable(GL_NORMALIZE);
+		glEnable(GL_LIGHT0);
+		glEnable(GL_LIGHT1);
+		glEnable(GL_COLOR_MATERIAL);
+
+		glShadeModel(GL_SMOOTH);
+		glDepthMask(GL_TRUE);
+
+		if (!FIRST_PERSON && !SECOND_PERSON)
+			setupCamera(60);
+		else {
+			setupCamera(120);
+		}
+
+		glPushMatrix();
+		setupLights();
+		glPopMatrix();
+
+		glPushMatrix();
+		glScalef(1.0 / GRID_LENGTH, 1.0 / GRID_WIDTH, 1.0 / GRID_WIDTH);
+
+
+		if (LEVEL_NUMBER > 1 && obstacle_wall_x.size() == 0) {
+			Generate_Obstacles();
+		}
+
+		glPushMatrix();
+		GLUquadricObj* qobj;
+		qobj = gluNewQuadric();
+		glScalef(0.25, 0.25, 0.25);
+		glTranslated(50, 0, 0);
+		glRotated(90, 1, 0, 1);
+		glBindTexture(GL_TEXTURE_2D, tex);
+		gluQuadricTexture(qobj, true);
+		gluQuadricNormals(qobj, GL_SMOOTH);
+		gluSphere(qobj, 100, 100, 100);
+		gluDeleteQuadric(qobj);
+		glPopMatrix();
+
+		Draw_Wall();
+		Draw_Grid();
+		RenderGround();
+		Draw_Snake();
+		Draw_Food(food_x, 0, food_z);
+		Generate_Boarder();
+
+		glPopMatrix();
+
+		if (FIRST_PERSON)
+			Set_First_Camera();
+		else if (SECOND_PERSON)
+			Set_Third_Camera();
+		else camera.cornerView();
+	}
 	glFlush();
+}
+
+void init() {
+	snake_body_x.clear();
+	snake_body_z.clear();
+	snake_body_x.push_back(0);
+	snake_body_z.push_back(0);
+
+	obstacle_wall_x.clear();
+	obstacle_wall_z.clear();
+
+	dir = 'U';
+	prevDir = 'U';
+
+	food_x = INF;
+	food_z = INF;
+
+	score = 0;
+
+	GAME_OVER = false;
+
+	FIRST_PERSON = true;
+	SECOND_PERSON = true;
+
+	CURRENT_TIME = 0;
+	CURRENT_TIME_TICK = 0;
+
+	orientation = 0;// 0->UP, 1->RIGHT, 2->DOWN, 3->LEFT
+
+	Update_Food_Position();
 }
 
 void Keyboard(unsigned char key, int x, int y) {
 	float d = 0.01;
 	switch (key) {
-	case 'w':
-		camera.moveY(d);
-		break;
-	case 's':
-		camera.moveY(-d);
-		break;
-	case 'a':
-		camera.moveX(d);
-		break;
-	case 'd':
-		camera.moveX(-d);
-		break;
-	case 'q':
-		camera.moveZ(d);
-		break;
-	case 'e':
-		camera.moveZ(-d);
-		break;
-	case 't':
-		camera.topView();
-		camera.moveZ(-0.4);
-		break;
-	case 'h':
-		camera.sideView();
-		camera.moveZ(-0.4);
-		break;
-	case 'f':
-		camera.frontView();
-		camera.moveZ(-0.4);
-		break;
-	case 'g':
-		camera.cornerView();
-		camera.moveZ(0);
-		break;
-	case 'i': // UP
-		if (prevDir != 'D') {
-			dir = 'U';
-		}
-		break;
-	case 'k': // DOWN
-		if (prevDir != 'U') {
-			dir = 'D';
-		}
-		break;
-	case 'j': // LEFT
-		if (prevDir != 'R') {
-			dir = 'L';
-		}
-		break;
-	case 'l': // RIGHT
-		if (prevDir != 'L') {
-			dir = 'R';
-		}
-		break;
 	case 'm':
 		orientation++;
 		orientation %= 4;
@@ -929,8 +923,16 @@ void Keyboard(unsigned char key, int x, int y) {
 		FIRST_PERSON = false;
 		SECOND_PERSON = false;
 		break;
-
-
+	case ' ':
+		if (GAME_OVER) {
+			if (score >= TARGET_GOAL_GOUNT) {
+				LEVEL_NUMBER++;
+			}
+			if (LEVEL_NUMBER >= 3 && score >= TARGET_GOAL_GOUNT) {
+				generateRandomColor();
+			}
+			init();
+		}
 		break;
 	case GLUT_KEY_ESCAPE:
 		exit(EXIT_SUCCESS);
@@ -939,37 +941,105 @@ void Keyboard(unsigned char key, int x, int y) {
 }
 
 void Special(int key, int x, int y) {
-	float a = 1.0;
 	switch (key) {
 	case GLUT_KEY_UP:
-		camera.rotateX(a);
+		if (prevDir != 'D') {
+			dir = 'U';
+		}
 		break;
 	case GLUT_KEY_DOWN:
-		camera.rotateX(-a);
+		if (prevDir != 'U') {
+			dir = 'D';
+		}
 		break;
 	case GLUT_KEY_LEFT:
-		camera.rotateY(a);
+		if (prevDir != 'R') {
+			dir = 'L';
+		}
 		break;
 	case GLUT_KEY_RIGHT:
-		camera.rotateY(-a);
+		if (prevDir != 'L') {
+			dir = 'R';
+		}
 		break;
 	}
 	glutPostRedisplay();
 }
 
+int UPDATE_FOOD_POSITION_TIME = 0;
+
 void Timer(int value) {
 	Is_Game_Over();
-	if (CURRENT_TIME % 30 == 0) {
-		if (!Is_Game_Over()) {
-			Update_Head_Position();
+	if (LEVEL_NUMBER == 1) {
+		if (CURRENT_TIME % 150 == 0) {
+			UPDATE_FOOD_POSITION_TIME++;
+			if (!Is_Game_Over()) {
+				Update_Head_Position();
+				if (UPDATE_FOOD_POSITION_TIME % 20 == 0) {
+					PlaySound(TEXT("sounds/woosh.wav"), NULL, SND_ASYNC | SND_FILENAME);
+					Update_Food_Position();
+				}
+			}
 			glutPostRedisplay();
 		}
 	}
+	else if (LEVEL_NUMBER == 2) {
+		if (CURRENT_TIME % 250 == 0) {
+			UPDATE_FOOD_POSITION_TIME++;
+			if (!Is_Game_Over()) {
+				Update_Head_Position();
+				if (UPDATE_FOOD_POSITION_TIME % 30 == 0) {
+					PlaySound(TEXT("sounds/woosh.wav"), NULL, SND_ASYNC | SND_FILENAME);
+					Update_Food_Position();
+				}
+			}
+			glutPostRedisplay();
+		}
+	}
+	else {
+		if (CURRENT_TIME % (300 - (min((LEVEL_NUMBER - 3) * 50, 299))) == 0) {
+			UPDATE_FOOD_POSITION_TIME++;
+			if (!Is_Game_Over()) {
+				Update_Head_Position();
+				if (UPDATE_FOOD_POSITION_TIME % (50 + (10 * (LEVEL_NUMBER - 3))) == 0) {
+					PlaySound(TEXT("sounds/woosh.wav"), NULL, SND_ASYNC | SND_FILENAME);
+					Update_Food_Position();
+				}
+				if (UPDATE_FOOD_POSITION_TIME % (10 + (5 * (LEVEL_NUMBER - 3))) == 0) {
+					PlaySound(TEXT("sounds/maze.wav"), NULL, SND_ASYNC | SND_FILENAME);
+					Generate_Obstacles();
+				}
+			}
+			glutPostRedisplay();
+		}
+	}
+
 	CURRENT_TIME++;
+	CURRENT_TIME_TICK++;
 	glutTimerFunc(1, Timer, 0);
 }
 
 void main(int argc, char** argv) {
+	srand(time(NULL));
+	// LIGHT VARIABLES
+	d0R = rand() % 256;
+	d0R = d0R / 255;
+	d0G = rand() % 256;
+	d0G = d0G / 255;
+	d0B = rand() % 256;
+	d0B = d0B / 255;
+	d1R = rand() % 256;
+	d1R = d1R / 255;
+	d1G = rand() % 256;
+	d1G = d0G / 255;
+	d1B = rand() % 256;
+	d1B = d0B / 255;
+	a0R = 1 - d0R;
+	a0G = 1 - d0G;
+	a0B = 1 - d0B;
+	a1R = 1 - d1R;
+	a1G = 1 - d1G;
+	a1B = 1 - d1B;
 	// START GLOBALE VARIABLES INIT
 	snake_body_x.push_back(0);
 	snake_body_z.push_back(0);
@@ -979,9 +1049,9 @@ void main(int argc, char** argv) {
 	glutInitWindowSize(800, 700);
 	glutInitWindowPosition(50, 50);
 
-	glutCreateWindow("Assignment 2");
+	glutCreateWindow("ts ts 2na 2l so3ban");
 	glutDisplayFunc(Display);
-	glutTimerFunc(0, Timer, 0); // sets the Timer handler function; which runs every `Threshold` milliseconds (1st argument)
+	glutTimerFunc(0, Timer, 0);
 
 	glutKeyboardFunc(Keyboard);
 	glutSpecialFunc(Special);
@@ -989,11 +1059,12 @@ void main(int argc, char** argv) {
 
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
 	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
-
 	LoadAssets();
+
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHT1);
 	glEnable(GL_NORMALIZE);
 	glEnable(GL_COLOR_MATERIAL);
 
@@ -1002,45 +1073,5 @@ void main(int argc, char** argv) {
 	std::srand(current_time);
 
 	Update_Food_Position();
-
 	glutMainLoop();
 }
-
-//=======================================================================
-// Main Function
-//=======================================================================
-//void main(int argc, char** argv)
-//{
-//	glutInit(&argc, argv);
-//
-//	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-//
-//	glutInitWindowSize(WIDTH, HEIGHT);
-//
-//	glutInitWindowPosition(100, 150);
-//
-//	glutCreateWindow(title);
-//
-//	glutDisplayFunc(Display);
-//
-//	glutKeyboardFunc(myKeyboard);
-//
-//	glutMotionFunc(myMotion);
-//
-//	glutMouseFunc(myMouse);
-//
-//	glutReshapeFunc(myReshape);
-//
-//	myInit();
-//
-//	LoadAssets();
-//	glEnable(GL_DEPTH_TEST);
-//	glEnable(GL_LIGHTING);
-//	glEnable(GL_LIGHT0);
-//	glEnable(GL_NORMALIZE);
-//	glEnable(GL_COLOR_MATERIAL);
-//
-//	glShadeModel(GL_SMOOTH);
-//
-//	glutMainLoop();
-//}
